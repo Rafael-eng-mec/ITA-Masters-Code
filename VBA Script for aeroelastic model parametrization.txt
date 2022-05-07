@@ -1,0 +1,242 @@
+'This code is to be used in the Excel Worksheet "Parametric_Aeroelastic_Buckling_5"
+
+Sub WriteNastran()
+
+'Writes all .dat Nastran files based on models defined
+
+Application.ScreenUpdating = False
+
+Dim num, i, j, k, x, ni, nf As Integer
+Dim Fbuck, ga, w0 As Double
+Dim file, filenum, filepath, filename, Fa, Fb, folder As String
+Dim nastran As Variant
+
+Worksheets(3).Activate
+
+i = 7 'Initial line of models
+ni = 57 'Initial Node number
+nf = 225 'Final Node number
+
+num = Cells(i, 2).Value 'Model Number
+Fa = Cells(i, 10).Value 'Force A of Aerodynamic Piston Theory Load
+Fb = Format(Cells(i, 11).Value, "00000.00") 'Force B of Aerodynamic Piston Theory Load
+Fbuck = Cells(i, 12).Value 'Force of Buckling
+    If Range("M2").Value = "" Then
+        ga = Cells(i, 9).Value
+    Else
+        ga = Range("M2").Value
+    End If
+w0 = Range("O2").Value * 2 * WorksheetFunction.Pi()
+
+filenum = Format(num, "000") 'Formating the name of nastran file
+filepath = ActiveWorkbook.Path 'Taking the path of file
+folder = filepath & "\RUN\"
+If Dir(folder, vbDirectory) = "" Then
+    MkDir folder
+End If
+filename = "Aeroelastic_Buckling_" & filenum & ".dat" 'Writing the nome of nastran deck
+file = filepath & "\RUN\" & filename 'Full path
+
+'Write the nastran .dat file for all models provided in tab "Parametric Modeling"
+
+For x = 1 To 100
+
+If num <> 0 Then
+    
+    Open file For Output As #1
+    
+    Worksheets(4).Activate 'Worksheet with Nastran .dat default analysis deck
+    
+    
+    For j = 1 To 42
+        nastran = Cells(j, 1).Value
+        Print #1, nastran
+    Next
+    
+    'Print #1, "PARAM,NDAMP," & Format(ga, "0.000")
+    
+    'Print #1, "PARAM,ALPHA1," & Format(ga, "0.000") & ",0."
+    'Print #1, "$ BLANCK"
+    
+    Print #1, "PARAM,G," & Format(ga, ".000")
+    Print #1, "PARAM,W3," & Format(w0, "0000.000")
+    
+    
+    For j = 45 To 60
+        nastran = Cells(j, 1).Value
+        Print #1, nastran
+    Next
+    
+    
+    'Writing buckling force (X and Y)
+    Print #1, "FORCE        103     226       0      1." & Format(Fbuck, "00000.00") & "      0.      0."
+    Print #1, "FORCE        103     227       0      1.      0." & Format(Fbuck, "00000.00") & "      0."
+    
+    'Writing aerodynamic piston theory forces
+    For k = ni To nf
+       Print #1, "NOLIN3         1    " & Format(k, "0000") & "       3" & Fa & "    " & Format(k, "0000") & "      13      1."
+    Next
+    
+    
+    For k = ni To nf
+       Print #1, "NOLIN4         1    " & Format(k, "0000") & "       3" & Fa & "    " & Format(k, "0000") & "      13      1."
+    Next
+    
+    
+    For k = ni To nf
+       Print #1, "NOLIN3         1    " & Format(k, "0000") & "       3" & Fb & "    " & Format(k, "0000") & "       5      1."
+    Next
+    
+    
+    For k = ni To nf
+       Print #1, "NOLIN4         1    " & Format(k, "0000") & "       3" & Fb & "    " & Format(k, "0000") & "       5      1."
+    Next
+    
+    For j = 739 To 1230
+        nastran = Cells(j, 1).Value
+        Print #1, nastran
+    Next
+       
+    
+    Close #1
+    
+End If
+    
+    'Iterate for next model
+    i = i + 1
+    
+    'Update the values
+    Worksheets(3).Activate
+    num = Cells(i, 2).Value 'Model Number
+    Fa = Cells(i, 10).Value 'Force A of Aerodynamic Piston Theory Load
+    Fb = Format(Cells(i, 11).Value, "00000.00") 'Force B of Aerodynamic Piston Theory Load
+    Fbuck = Cells(i, 12).Value 'Force of Buckling
+    If Range("M2").Value = "" Then
+        ga = Cells(i, 9).Value
+    Else
+        ga = Range("M2").Value
+    End If
+    w0 = Range("O2").Value * 2 * WorksheetFunction.Pi()
+    
+    filenum = Format(num, "000")
+    filepath = ActiveWorkbook.Path
+    filename = "Aeroelastic_Buckling_" & filenum & ".dat"
+    file = filepath & "\RUN\" & filename
+
+Next
+
+Range("A1").Select
+
+Application.ScreenUpdating = True
+
+MsgBox ("Nastran .dat files generated succesfully!")
+
+End Sub
+
+Sub NastranBat()
+
+'Creates a .bat executable file with all the analysis considered
+Application.ScreenUpdating = False
+
+Dim num, i, x As Integer
+Dim file, filenum, filepath, filename As String
+
+Worksheets(3).Activate
+
+i = 7 'Initial line of models
+
+num = Cells(i, 2).Value 'Model Number
+
+filenum = Format(num, "000")
+filepath = ActiveWorkbook.Path 'Taking the path of file
+filename = "run_nastran.bat" 'Writing the nome of nastran .bat executable
+file = filepath & "\RUN\" & filename 'Full path
+
+'Write the nastran .bat file for all models provided in tab "Parametric Modeling"
+
+Open file For Output As #1
+
+For x = 1 To 100
+
+If num <> 0 Then
+        
+    'Writing analysis line
+    Print #1, "nastran Aeroelastic_Buckling_" & filenum & ".dat"
+    
+End If
+    
+    'Iterate for next model
+    i = i + 1
+    
+    'Update the values
+    num = Cells(i, 2).Value
+    
+    filenum = Format(num, "000")
+    filepath = ActiveWorkbook.Path 'Taking the path of file
+    filename = "run_nastran.bat" 'Writing the nome of nastran .bat executable
+    file = filepath & "\" & filename 'Full path
+
+Next
+
+Close #1
+
+Range("A1").Select
+
+Application.ScreenUpdating = True
+
+MsgBox ("Nastran .bat executable file generated succesfully!")
+
+End Sub
+
+Sub FemapOutput()
+
+'Extract the nodal displacements from Nastran results .f06 through FEMAP API
+
+Dim h As Double
+Dim num, i, x As Integer
+Dim file, filenum, filepath, filename As String
+Dim dispnd() As Double
+Dim App As femap.Model
+
+Set App = CreateObject("femap.model")
+
+Dim op As Object
+Set op = feFileOpen(False, filepath & "\Post_Processor.modfem")
+
+'Application.ScreenUpdating = False
+Worksheets(5).Activate
+
+Range("A:XFD").Clear
+Range("A1").Select
+
+h = Worksheets(1).Range("C9")
+
+Worksheets(3).Activate
+
+i = 7 'Initial line of models
+
+num = Cells(i, 2).Value 'Model Number
+
+filenum = Format(num, "000")
+filepath = ActiveWorkbook.Path 'Taking the path of file
+filename = "nastran Aeroelastic_Buckling_" & filenum & ".op2" 'Writing the nome of nastran .op2 result
+file = filepath & "\" & filename 'Full path
+
+For x = 1 To 100
+
+    If num <> 0 Then
+        Dim readnastran As Object
+        Set readnastran = feFileReadNastranResults(8, file)
+    End If
+
+    'Iterate for next model
+    i = i + 1
+
+    'Update the values
+    num = Cells(i, 2).Value
+
+Next
+
+'Application.ScreenUpdating = True
+
+End Sub
